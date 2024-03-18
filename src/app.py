@@ -8,7 +8,7 @@ from flask_swagger import swagger
 from flask_cors import CORS
 from utils import APIException, generate_sitemap
 from admin import setup_admin
-from models import db, User
+from models import db, User, Characters, Planets, Favorites
 #from models import Person
 
 app = Flask(__name__)
@@ -37,13 +37,46 @@ def sitemap():
     return generate_sitemap(app)
 
 @app.route('/user', methods=['GET'])
-def handle_hello():
+def handle_user_hello():
 
-    response_body = {
-        "msg": "Hello, this is your GET /user response "
-    }
+    all_users = User.query.all()
+    response_body = list(map(lambda x: x.serialize(), all_users))
 
     return jsonify(response_body), 200
+
+@app.route('/characters', methods=['GET'])
+def handle_characters_hello():
+
+    all_characters = Characters.query.all()
+    response_body = list(map(lambda x: x.serialize(), all_characters))
+
+    return jsonify(response_body), 200
+
+@app.route('/planets', methods=['GET'])
+def handle_planets_hello():
+
+    all_planets = Planets.query.all()
+    response_body = list(map(lambda x: x.serialize(), all_planets))
+
+    return jsonify(response_body), 200
+
+@app.route('/favorites', methods=['GET'])
+def handle_favorites_hello():
+
+    all_favorites = Favorites.query.all()
+    response_body = list(map(lambda x: x.serialize(), all_favorites))
+
+    return jsonify(response_body), 200
+
+@app.route('/favorites', methods=['POST'])
+def add_new_favorite():
+    request_body = request.json
+    print("Incoming request with the following body", request_body)
+    return {
+        "char_id": int,
+        "planet_id": int,
+        "user_id": int,
+    }
 
 # this only runs if `$ python src/app.py` is executed
 if __name__ == '__main__':
