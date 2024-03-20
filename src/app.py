@@ -47,9 +47,9 @@ def handle_user_hello():
 @app.route('/getuser', methods=['POST'])
 def handle_get_user():
     recieved = request.json
-    user = User.query.filter_by(username=recieved["username"])
-    listed = list((map(lambda x: x.serialize(), user)))
-    return jsonify(listed)
+    user = User.query.filter_by(username=recieved["username"]).first()
+    userdet = user.serialize()
+    return jsonify(userdet)
 
 @app.route('/user', methods=['POST'])
 def handle_user_login():
@@ -97,12 +97,25 @@ def handle_user_fav(uid):
 @app.route('/favorites', methods=['POST'])
 def handle_create_favorite():
     sent_fav = request.json
-    new_fav = Favorites(**sent_fav)
-    db.session.add(new_fav)
+    favs = Favorites.query.filter_by(user_id=sent_fav["user_id"], name=sent_fav["name"]).first()
+    if favs:
+        return jsonify("Favorite Exists"), "403 Favorite already exists."
+    else:
+        new_fav = Favorites(**sent_fav)
+        db.session.add(new_fav)
+        db.session.commit()
+        new_favs = Favorites.query.all()
+        listed = list(map(lambda x: x.serialize(), new_favs))
+        return(jsonify(listed)), 200
+    
+@app.route('/favorites/<uid>/<id>', methods=['DELETE'])
+def handle_delete_favorite(uid,id):
+    to_delete = Favorites.query.get(id)
+    db.session.delete(to_delete)
     db.session.commit()
-    new_favs = Favorites.query.all()
+    new_favs = Favorites.query.filter_by(user_id=uid)
     listed = list(map(lambda x: x.serialize(), new_favs))
-    return(jsonify(listed))
+    return jsonify(listed), 200
 
 
 # this only runs if `$ python src/app.py` is executed
