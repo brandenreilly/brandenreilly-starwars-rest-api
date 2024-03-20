@@ -52,14 +52,14 @@ def handle_get_user():
     return jsonify(userdet)
 
 @app.route('/user', methods=['POST'])
-def handle_user_login():
+def handle_create_user():
     sent_user = request.json
-    new_user = User(**sent_user)
+    new_user = User(username=sent_user["username"], password=sent_user["password"], email=sent_user["email"])
     db.session.add(new_user)
     db.session.commit()
-    all_users = User.query.all()
-    new_list = list(map(lambda x: x.serialize(), all_users))
-    return(jsonify(new_list))
+    created_user = User.query.filter_by(username=sent_user["username"]).first()
+    created_details = created_user.serialize()
+    return jsonify(created_details), 200
 
 
 @app.route('/characters', methods=['GET'])
@@ -104,9 +104,13 @@ def handle_create_favorite():
         new_fav = Favorites(**sent_fav)
         db.session.add(new_fav)
         db.session.commit()
-        new_favs = Favorites.query.all()
-        listed = list(map(lambda x: x.serialize(), new_favs))
-        return(jsonify(listed)), 200
+        recent_added = Favorites.query.filter_by(user_id=sent_fav["user_id"], name=sent_fav["name"])
+        if recent_added:
+            new_favs = Favorites.query.all()
+            listed = list(map(lambda x: x.serialize(), new_favs))
+            return(jsonify(listed)), 200
+        else:
+            return jsonify("Record not added."), "409 Record has not been added."
     
 @app.route('/favorites/<uid>/<id>', methods=['DELETE'])
 def handle_delete_favorite(uid,id):
@@ -117,6 +121,13 @@ def handle_delete_favorite(uid,id):
     listed = list(map(lambda x: x.serialize(), new_favs))
     return jsonify(listed), 200
 
+@app.route('/favorites/all/<uid>', methods=['DELETE'])
+def handle_delete_all_favorites(uid):
+    find_favs = Favorites.query.filter_by(user_id=uid)
+    list_favs = list(map(lambda x: x.serialize(), find_favs))
+    db.session.delete(list_favs)
+    db.session.commit()
+    return jsonify("ALL FAVORITES FROM USER HAS BEEN DELETED"), 200
 
 # this only runs if `$ python src/app.py` is executed
 if __name__ == '__main__':
