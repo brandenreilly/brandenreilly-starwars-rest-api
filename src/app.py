@@ -44,6 +44,24 @@ def handle_user_hello():
 
     return jsonify(response_body), 200
 
+@app.route('/getuser', methods=['POST'])
+def handle_get_user():
+    recieved = request.json
+    user = User.query.filter_by(username=recieved["username"])
+    listed = list((map(lambda x: x.serialize(), user)))
+    return jsonify(listed)
+
+@app.route('/user', methods=['POST'])
+def handle_user_login():
+    sent_user = request.json
+    new_user = User(**sent_user)
+    db.session.add(new_user)
+    db.session.commit()
+    all_users = User.query.all()
+    new_list = list(map(lambda x: x.serialize(), all_users))
+    return(jsonify(new_list))
+
+
 @app.route('/characters', methods=['GET'])
 def handle_characters_hello():
 
@@ -68,15 +86,24 @@ def handle_favorites_hello():
 
     return jsonify(response_body), 200
 
+@app.route('/favorites/<int:uid>', methods=['GET'])
+def handle_user_fav(uid):
+    user_fav = Favorites.query.filter_by(user_id=uid)
+    listed = list(map(lambda x: x.serialize(), user_fav))
+    return jsonify(listed), 200
+
+
+
 @app.route('/favorites', methods=['POST'])
-def add_new_favorite():
-    request_body = request.json
-    print("Incoming request with the following body", request_body)
-    return {
-        "char_id": int,
-        "planet_id": int,
-        "user_id": int,
-    }
+def handle_create_favorite():
+    sent_fav = request.json
+    new_fav = Favorites(**sent_fav)
+    db.session.add(new_fav)
+    db.session.commit()
+    new_favs = Favorites.query.all()
+    listed = list(map(lambda x: x.serialize(), new_favs))
+    return(jsonify(listed))
+
 
 # this only runs if `$ python src/app.py` is executed
 if __name__ == '__main__':
