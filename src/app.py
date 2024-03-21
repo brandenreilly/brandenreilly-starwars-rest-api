@@ -99,9 +99,13 @@ def handle_create_favorite():
     sent_fav = request.json
     favs = Favorites.query.filter_by(user_id=sent_fav["user_id"], name=sent_fav["name"]).first()
     if favs:
-        return jsonify("Favorite Exists"), "403 Favorite already exists."
+        query_favs = Favorites.query.all()
+        list_favs = list(map(lambda x: x.serialize(), query_favs))
+        db.session.delete(favs)
+        db.session.commit()
+        return jsonify(list_favs), 200
     else:
-        new_fav = Favorites(**sent_fav)
+        new_fav = Favorites(user_id=sent_fav["user_id"], name=sent_fav["name"], char_id=sent_fav["char_id"], planet_id=sent_fav["planet_id"], typeof=sent_fav["typeof"])
         db.session.add(new_fav)
         db.session.commit()
         recent_added = Favorites.query.filter_by(user_id=sent_fav["user_id"], name=sent_fav["name"])
@@ -124,10 +128,32 @@ def handle_delete_favorite(uid,id):
 @app.route('/favorites/all/<uid>', methods=['DELETE'])
 def handle_delete_all_favorites(uid):
     find_favs = Favorites.query.filter_by(user_id=uid)
-    list_favs = list(map(lambda x: x.serialize(), find_favs))
-    db.session.delete(list_favs)
+    mapped_favs = list(map(lambda x: x.serialize(), find_favs))
+    return jsonify(mapped_favs), 200
+
+@app.route('/createcharacter', methods=['POST'])
+def handle_create_character():
+    sent_char = request.json
+    new_char = Characters(name=sent_char["name"], height=sent_char["height"], weight=sent_char["weight"], hair_color=sent_char["hair_color"], skin_color=sent_char["skin_color"], eye_color=sent_char["eye_color"], birth_year=sent_char["birth_year"], gender=sent_char["gender"], homeworld=sent_char["homeworld"], img_url=sent_char["img_url"])
+    db.session.add(new_char)
     db.session.commit()
-    return jsonify("ALL FAVORITES FROM USER HAS BEEN DELETED"), 200
+    created_char = Characters.query.filter_by(name=sent_char["name"]).first()
+    created_details = created_char.serialize()
+    return jsonify(created_details), 200
+    
+@app.route('/createplanet', methods=['POST'])
+def handle_create_planet():
+    sent_planet = request.json
+    does_match = Planets.query.filter_by(name=sent_planet["name"]).first()
+    if does_match:
+        return jsonify("PLANET ALREADY EXISTS"), 409
+    else:
+        new_planet = Planets(name=sent_planet["name"], climate=sent_planet["climate"], terrain=sent_planet["terrain"], population=sent_planet["population"], diameter=sent_planet["diameter"], gravity=sent_planet["gravity"], rotation_period=sent_planet["rotation_period"], orbital_period=sent_planet["orbital_period"], surface_water=sent_planet["surface_water"], img_url=sent_planet["img_url"])
+        db.session.add(new_planet)
+        db.session.commit()
+        created_planet = Planets.query.filter_by(name=sent_planet["name"]).first()
+        created_details = created_planet.serialize()
+        return jsonify(created_details), 200
 
 # this only runs if `$ python src/app.py` is executed
 if __name__ == '__main__':
